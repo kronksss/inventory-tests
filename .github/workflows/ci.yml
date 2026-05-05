@@ -178,8 +178,8 @@ jobs:
             exit 1
           fi
 
-    # ============================================
-  # JOB 5: Telegram уведомление
+  # ============================================
+  # JOB 5: Telegram уведомление через curl
   # ============================================
   telegram-notify:
     name: Send Telegram Notification
@@ -193,41 +193,68 @@ jobs:
         run: |
           echo "DATETIME=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
       
-      - name: Send success notification to Telegram
+      - name: Prepare success message
         if: needs.check-status.result == 'success'
-        uses: appleboy/telegram-action@v2.0.0  # ← исправленная версия
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          format: markdown
-          message: |
-            ✅ *CI/CD Pipeline - УСПЕШНО* ✅
-            
-            🎮 *Проект:* Инвентарь игрока
-            📦 *Репозиторий:* ${{ github.repository }}
-            🌿 *Ветка:* ${{ github.ref_name }}
-            💬 *Коммит:* ${{ github.event.head_commit.message }}
-            👤 *Автор:* ${{ github.actor }}
-            🕐 *Время:* ${{ steps.datetime.outputs.DATETIME }}
-            
-            📊 *Результаты тестов:*
-            ✅ Unit tests: PASSED
-            ✅ API tests: PASSED
-            ✅ UI tests: PASSED
-            
-            🎉 *Все тесты пройдены успешно!*
-            
-            🔗 *Детали:* https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        id: success_msg
+        run: |
+          MSG="✅ *CI/CD Pipeline - УСПЕШНО* ✅%0A"
+          MSG="${MSG}%0A"
+          MSG="${MSG}🎮 *Проект:* Инвентарь игрока%0A"
+          MSG="${MSG}📦 *Репозиторий:* ${{ github.repository }}%0A"
+          MSG="${MSG}🌿 *Ветка:* ${{ github.ref_name }}%0A"
+          MSG="${MSG}💬 *Коммит:* ${GITHUB_SHA:0:7}%0A"
+          MSG="${MSG}👤 *Автор:* ${{ github.actor }}%0A"
+          MSG="${MSG}🕐 *Время:* ${{ steps.datetime.outputs.DATETIME }}%0A"
+          MSG="${MSG}%0A"
+          MSG="${MSG}📊 *Результаты тестов:*%0A"
+          MSG="${MSG}✅ Unit tests: ${{ needs.unit-tests.result }}%0A"
+          MSG="${MSG}✅ API tests: ${{ needs.api-tests.result }}%0A"
+          MSG="${MSG}✅ UI tests: ${{ needs.ui-tests.result }}%0A"
+          MSG="${MSG}%0A"
+          MSG="${MSG}🎉 *Все тесты пройдены успешно!*%0A"
+          MSG="${MSG}%0A"
+          MSG="${MSG}🔗 *Детали:* https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "MESSAGE=$MSG" >> $GITHUB_OUTPUT
       
-      - name: Send failure notification to Telegram
+      - name: Prepare failure message
         if: needs.check-status.result != 'success'
-        uses: appleboy/telegram-action@v2.0.0  # ← исправленная версия
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          format: markdown
-          message: |
-            ❌ *CI/CD Pipeline - ОШИБКА* ❌
+        id: failure_msg
+        run: |
+          MSG="❌ *CI/CD Pipeline - ОШИБКА* ❌%0A"
+          MSG="${MSG}%0A"
+          MSG="${MSG}🎮 *Проект:* Инвентарь игрока%0A"
+          MSG="${MSG}📦 *Репозиторий:* ${{ github.repository }}%0A"
+          MSG="${MSG}🌿 *Ветка:* ${{ github.ref_name }}%0A"
+          MSG="${MSG}💬 *Коммит:* ${GITHUB_SHA:0:7}%0A"
+          MSG="${MSG}👤 *Автор:* ${{ github.actor }}%0A"
+          MSG="${MSG}🕐 *Время:* ${{ steps.datetime.outputs.DATETIME }}%0A"
+          MSG="${MSG}%0A"
+          MSG="${MSG}📊 *Результаты тестов:*%0A"
+          MSG="${MSG}${{ needs.unit-tests.result == 'success' && '✅' || '❌' }} Unit tests: ${{ needs.unit-tests.result }}%0A"
+          MSG="${MSG}${{ needs.api-tests.result == 'success' && '✅' || '❌' }} API tests: ${{ needs.api-tests.result }}%0A"
+          MSG="${MSG}${{ needs.ui-tests.result == 'success' && '✅' || '❌' }} UI tests: ${{ needs.ui-tests.result }}%0A"
+          MSG="${MSG}%0A"
+          MSG="${MSG}💥 *Некоторые тесты не прошли!*%0A"
+          MSG="${MSG}%0A"
+          MSG="${MSG}🔗 *Детали:* https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "MESSAGE=$MSG" >> $GITHUB_OUTPUT
+      
+      - name: Send Telegram message
+        uses: ./ # dummy step, actual send via curl
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ "${{ needs.check-status.result }}" = "success" ]; then
+            MESSAGE="${{ steps.success_msg.outputs.MESSAGE }}"
+          else
+            MESSAGE="${{ steps.failure_msg.outputs.MESSAGE }}"
+          fi
+          
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=${MESSAGE}" \
+            -d "parse_mode=Markdown"
             
             🎮 *Проект:* Инвентарь игрока
             📦 *Репозиторий:* ${{ github.repository }}
