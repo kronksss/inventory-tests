@@ -178,7 +178,7 @@ jobs:
             exit 1
           fi
 
-  # ============================================
+    # ============================================
   # JOB 5: Telegram уведомление
   # ============================================
   telegram-notify:
@@ -194,8 +194,8 @@ jobs:
           echo "DATETIME=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
       
       - name: Send success notification to Telegram
-        if: needs.check-status.outputs.OVERALL_STATUS == 'success' || needs.check-status.result == 'success'
-        uses: appleboy/telegram-action@v1
+        if: needs.check-status.result == 'success'
+        uses: appleboy/telegram-action@v2.0.0  # ← исправленная версия
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -220,8 +220,8 @@ jobs:
             🔗 *Детали:* https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
       
       - name: Send failure notification to Telegram
-        if: needs.check-status.outputs.OVERALL_STATUS == 'failure' || needs.check-status.result == 'failure'
-        uses: appleboy/telegram-action@v1
+        if: needs.check-status.result != 'success'
+        uses: appleboy/telegram-action@v2.0.0  # ← исправленная версия
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -235,11 +235,6 @@ jobs:
             💬 *Коммит:* ${{ github.event.head_commit.message }}
             👤 *Автор:* ${{ github.actor }}
             🕐 *Время:* ${{ steps.datetime.outputs.DATETIME }}
-            
-            📊 *Результаты тестов:*
-            ${{ needs.unit-tests.result == 'success' && '✅' || '❌' }} Unit tests: ${{ needs.unit-tests.result }}
-            ${{ needs.api-tests.result == 'success' && '✅' || '❌' }} API tests: ${{ needs.api-tests.result }}
-            ${{ needs.ui-tests.result == 'success' && '✅' || '❌' }} UI tests: ${{ needs.ui-tests.result }}
             
             💥 *Некоторые тесты не прошли!*
             
