@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инвентарь игрока</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎒 Инвентарь игрока</h1>
+        
+        <div class="card">
+            <h2>Добавление предмета в рюкзак</h2>
+            
+            <!-- Выбор предмета -->
+            <div class="form-group">
+                <label>📦 Выберите предмет:</label>
+                <div class="items-grid" id="itemsGrid">
+                    <div class="item-card" data-item-id="sword_iron">
+                        <div class="item-icon">⚔️</div>
+                        <div class="item-name">Железный меч</div>
+                        <div class="item-weight">Вес: 3.5 кг</div>
+                    </div>
+                    <div class="item-card" data-item-id="health_potion">
+                        <div class="item-icon">🧪</div>
+                        <div class="item-name">Зелье здоровья</div>
+                        <div class="item-weight">Вес: 0.2 кг</div>
+                    </div>
+                    <div class="item-card" data-item-id="leather_armor">
+                        <div class="item-icon">🛡️</div>
+                        <div class="item-name">Кожаная броня</div>
+                        <div class="item-weight">Вес: 5.0 кг</div>
+                    </div>
+                    <div class="item-card" data-item-id="gold_coin">
+                        <div class="item-icon">🪙</div>
+                        <div class="item-name">Золотая монета</div>
+                        <div class="item-weight">Вес: 0.01 кг</div>
+                    </div>
+                    <div class="item-card" data-item-id="dragon_scale">
+                        <div class="item-icon">🐉</div>
+                        <div class="item-name">Чешуя дракона</div>
+                        <div class="item-weight">Вес: 2.0 кг</div>
+                    </div>
+                    <div class="item-card" data-item-id="magic_staff">
+                        <div class="item-icon">🔮</div>
+                        <div class="item-name">Магический посох</div>
+                        <div class="item-weight">Вес: 1.8 кг</div>
+                    </div>
+                    <div class="item-card" data-item-id="shield">
+                        <div class="item-icon">🛡️</div>
+                        <div class="item-name">Стальной щит</div>
+                        <div class="item-weight">Вес: 4.5 кг</div>
+                    </div>
+                    <div class="item-card" data-item-id="arrow">
+                        <div class="item-icon">🏹</div>
+                        <div class="item-name">Стрела</div>
+                        <div class="item-weight">Вес: 0.05 кг</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Параметры инвентаря -->
+            <div class="form-group">
+                <label>🎒 Грузоподъёмность рюкзака (кг):</label>
+                <input type="number" id="maxWeight" class="input-field" placeholder="Например: 20" value="20">
+            </div>
+
+            <div class="form-group">
+                <label>📦 Свободные слоты:</label>
+                <input type="number" id="freeSlots" class="input-field" placeholder="Например: 5" value="5">
+            </div>
+
+            <div class="form-group">
+                <label>⚖️ Текущий вес инвентаря (кг):</label>
+                <input type="number" id="currentWeight" class="input-field" placeholder="Например: 5" value="0">
+            </div>
+
+            <!-- Выбранный предмет -->
+            <div class="selected-item">
+                <strong>Выбранный предмет:</strong> 
+                <span id="selectedItemName">Не выбран</span>
+                <span id="selectedItemWeight" class="item-weight-small"></span>
+            </div>
+
+            <!-- Кнопка добавления -->
+            <button id="addButton" class="btn btn-primary" disabled>➕ Добавить в инвентарь</button>
+
+            <!-- Результат -->
+            <div id="resultArea" class="result-area"></div>
+        </div>
+
+        <!-- Текущее состояние инвентаря -->
+        <div class="card">
+            <h3>📊 Состояние инвентаря</h3>
+            <div class="inventory-stats">
+                <div>📦 Занято слотов: <span id="usedSlots">0</span></div>
+                <div>⚖️ Текущий вес: <span id="displayWeight">0</span> кг</div>
+                <div>📊 Свободно места: <span id="displayRemaining">0</span> кг</div>
+                <div>📦 Свободно слотов: <span id="displayFreeSlots">5</span></div>
+            </div>
+            <div class="inventory-items" id="inventoryItems"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
