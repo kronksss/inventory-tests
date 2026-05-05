@@ -7,9 +7,6 @@ on:
     branches: [ main ]
 
 jobs:
-  # ============================================
-  # JOB 1: Unit тесты (Jest)
-  # ============================================
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -37,13 +34,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-results-node-${{ matrix.node-version }}
-          path: |
-            coverage/
-            test-results/
+          path: coverage/
 
-  # ============================================
-  # JOB 2: API тесты (Cucumber)
-  # ============================================
   api-tests:
     name: API Tests
     runs-on: ubuntu-latest
@@ -76,13 +68,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: api-test-results-node-${{ matrix.node-version }}
-          path: |
-            report.html
-            allure-results/
+          path: report.html
 
-  # ============================================
-  # JOB 3: UI тесты (Playwright)
-  # ============================================
   ui-tests:
     name: UI Tests
     runs-on: ubuntu-latest
@@ -112,18 +99,15 @@ jobs:
           npx wait-on http://localhost:3000
       
       - name: Run UI tests
-        run: npm run test:ui -- --project=${{ matrix.browser }}
+        run: npm run test:ui
       
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.browser }}
+          name: playwright-report
           path: playwright-report/
 
-  # ============================================
-  # JOB 4: Проверка общего статуса
-  # ============================================
   check-status:
     name: Overall Status
     runs-on: ubuntu-latest
@@ -132,33 +116,24 @@ jobs:
     
     steps:
       - name: Check all tests passed
-        id: status_check
         run: |
           echo "========================================="
           echo "📊 Результаты тестирования"
           echo "========================================="
           
-          UNIT_STATUS="${{ needs.unit-tests.result }}"
-          API_STATUS="${{ needs.api-tests.result }}"
-          UI_STATUS="${{ needs.ui-tests.result }}"
-          
-          echo "UNIT_STATUS=$UNIT_STATUS" >> $GITHUB_OUTPUT
-          echo "API_STATUS=$API_STATUS" >> $GITHUB_OUTPUT
-          echo "UI_STATUS=$UI_STATUS" >> $GITHUB_OUTPUT
-          
-          if [ "$UNIT_STATUS" = "success" ]; then
+          if [ "${{ needs.unit-tests.result }}" = "success" ]; then
             echo "✅ Unit tests: PASSED"
           else
             echo "❌ Unit tests: FAILED"
           fi
           
-          if [ "$API_STATUS" = "success" ]; then
+          if [ "${{ needs.api-tests.result }}" = "success" ]; then
             echo "✅ API tests: PASSED"
           else
             echo "❌ API tests: FAILED"
           fi
           
-          if [ "$UI_STATUS" = "success" ]; then
+          if [ "${{ needs.ui-tests.result }}" = "success" ]; then
             echo "✅ UI tests: PASSED"
           else
             echo "❌ UI tests: FAILED"
@@ -166,103 +141,37 @@ jobs:
           
           echo "========================================="
           
-          if [ "$UNIT_STATUS" = "success" ] && \
-             [ "$API_STATUS" = "success" ] && \
-             [ "$UI_STATUS" = "success" ]; then
+          if [ "${{ needs.unit-tests.result }}" = "success" ] && \
+             [ "${{ needs.api-tests.result }}" = "success" ] && \
+             [ "${{ needs.ui-tests.result }}" = "success" ]; then
             echo "🎉 Все тесты пройдены успешно!"
-            echo "OVERALL_STATUS=success" >> $GITHUB_OUTPUT
-            exit 0
           else
             echo "💥 Некоторые тесты не прошли"
-            echo "OVERALL_STATUS=failure" >> $GITHUB_OUTPUT
             exit 1
           fi
 
-  # ============================================
-  # JOB 5: Telegram уведомление через curl
-  # ============================================
   telegram-notify:
-    name: Send Telegram Notification
+    name: Telegram Notification
     runs-on: ubuntu-latest
-    needs: [unit-tests, api-tests, ui-tests, check-status]
+    needs: [check-status]
     if: always()
     
     steps:
-      - name: Get current date and time
-        id: datetime
-        run: |
-          echo "DATETIME=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
-      
-      - name: Prepare success message
-        if: needs.check-status.result == 'success'
-        id: success_msg
-        run: |
-          MSG="✅ *CI/CD Pipeline - УСПЕШНО* ✅%0A"
-          MSG="${MSG}%0A"
-          MSG="${MSG}🎮 *Проект:* Инвентарь игрока%0A"
-          MSG="${MSG}📦 *Репозиторий:* ${{ github.repository }}%0A"
-          MSG="${MSG}🌿 *Ветка:* ${{ github.ref_name }}%0A"
-          MSG="${MSG}💬 *Коммит:* ${GITHUB_SHA:0:7}%0A"
-          MSG="${MSG}👤 *Автор:* ${{ github.actor }}%0A"
-          MSG="${MSG}🕐 *Время:* ${{ steps.datetime.outputs.DATETIME }}%0A"
-          MSG="${MSG}%0A"
-          MSG="${MSG}📊 *Результаты тестов:*%0A"
-          MSG="${MSG}✅ Unit tests: ${{ needs.unit-tests.result }}%0A"
-          MSG="${MSG}✅ API tests: ${{ needs.api-tests.result }}%0A"
-          MSG="${MSG}✅ UI tests: ${{ needs.ui-tests.result }}%0A"
-          MSG="${MSG}%0A"
-          MSG="${MSG}🎉 *Все тесты пройдены успешно!*%0A"
-          MSG="${MSG}%0A"
-          MSG="${MSG}🔗 *Детали:* https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          echo "MESSAGE=$MSG" >> $GITHUB_OUTPUT
-      
-      - name: Prepare failure message
-        if: needs.check-status.result != 'success'
-        id: failure_msg
-        run: |
-          MSG="❌ *CI/CD Pipeline - ОШИБКА* ❌%0A"
-          MSG="${MSG}%0A"
-          MSG="${MSG}🎮 *Проект:* Инвентарь игрока%0A"
-          MSG="${MSG}📦 *Репозиторий:* ${{ github.repository }}%0A"
-          MSG="${MSG}🌿 *Ветка:* ${{ github.ref_name }}%0A"
-          MSG="${MSG}💬 *Коммит:* ${GITHUB_SHA:0:7}%0A"
-          MSG="${MSG}👤 *Автор:* ${{ github.actor }}%0A"
-          MSG="${MSG}🕐 *Время:* ${{ steps.datetime.outputs.DATETIME }}%0A"
-          MSG="${MSG}%0A"
-          MSG="${MSG}📊 *Результаты тестов:*%0A"
-          MSG="${MSG}${{ needs.unit-tests.result == 'success' && '✅' || '❌' }} Unit tests: ${{ needs.unit-tests.result }}%0A"
-          MSG="${MSG}${{ needs.api-tests.result == 'success' && '✅' || '❌' }} API tests: ${{ needs.api-tests.result }}%0A"
-          MSG="${MSG}${{ needs.ui-tests.result == 'success' && '✅' || '❌' }} UI tests: ${{ needs.ui-tests.result }}%0A"
-          MSG="${MSG}%0A"
-          MSG="${MSG}💥 *Некоторые тесты не прошли!*%0A"
-          MSG="${MSG}%0A"
-          MSG="${MSG}🔗 *Детали:* https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          echo "MESSAGE=$MSG" >> $GITHUB_OUTPUT
-      
       - name: Send Telegram message
-        uses: ./ # dummy step, actual send via curl
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           if [ "${{ needs.check-status.result }}" = "success" ]; then
-            MESSAGE="${{ steps.success_msg.outputs.MESSAGE }}"
+            STATUS="✅ PASSED"
+            EMOJI="✅"
+            MESSAGE="Все тесты пройдены успешно!"
           else
-            MESSAGE="${{ steps.failure_msg.outputs.MESSAGE }}"
+            STATUS="❌ FAILED"
+            EMOJI="❌"
+            MESSAGE="Некоторые тесты не прошли!"
           fi
           
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
             -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            -d "text=${MESSAGE}" \
-            -d "parse_mode=Markdown"
-            
-            🎮 *Проект:* Инвентарь игрока
-            📦 *Репозиторий:* ${{ github.repository }}
-            🌿 *Ветка:* ${{ github.ref_name }}
-            💬 *Коммит:* ${{ github.event.head_commit.message }}
-            👤 *Автор:* ${{ github.actor }}
-            🕐 *Время:* ${{ steps.datetime.outputs.DATETIME }}
-            
-            💥 *Некоторые тесты не прошли!*
-            
-            🔗 *Детали:* https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            -d "text=${EMOJI} CI/CD Pipeline ${STATUS}%0A%0A📦 Repo: ${{ github.repository }}%0A🌿 Branch: ${{ github.ref_name }}%0A👤 Author: ${{ github.actor }}%0A%0A📊 Result: ${MESSAGE}%0A%0A🔗 https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
